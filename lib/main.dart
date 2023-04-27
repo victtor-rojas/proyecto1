@@ -1,115 +1,250 @@
-import 'package:flutter/material.dart';
+import 'dart:html';
+import 'dart:convert';
 
-void main() {
-  runApp(const MyApp());
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+import 'package:local_auth/auth_strings.dart';
+import 'package:proyecto1/View/Geoposition.dart';
+import 'package:proyecto1/view/Registro.dart';
+import 'package:proyecto1/view/Rest.dart';
+import '../DTO/User.dart';
+import 'package:proyecto1/View/Administrador.dart';
+import 'package:proyecto1/View/Invitado.dart';
+import 'firebase_options.dart';
+import 'package:crypto/crypto.dart';
+import 'package:local_auth/local_auth.dart';
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo ',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    return MaterialApp(debugShowCheckedModeBanner: false, home: Home());
+  }
+}
+
+class Home extends StatefulWidget {
+  @override
+  Homestrat createState() => Homestrat();
+}
+
+class Homestrat extends State<Home>{
+  TextEditingController user = TextEditingController();
+  TextEditingController paswword = TextEditingController();
+  User objUser = User();
+  final LocalAuthentication auth = LocalAuthentication();
+
+  Future<bool> biometrico() async {
+    //print("biométrico");
+
+    // bool flag = true;
+    bool authenticated = false;
+
+    const androidString = const AndroidAuthMessages(
+      cancelButton: "Cancelar",
+      goToSettingsButton: "Ajustes",
+      signInTitle: "Ingrese",
+      //fingerprintNotRecognized: 'Error de reconocimiento de huella digital',
+      goToSettingsDescription: "Confirme su huella",
+      //fingerprintSuccess: 'Reconocimiento de huella digital exitoso',
+      biometricHint: "Toque el sensor",
+      //signInTitle: 'Verificación de huellas digitales',
+      biometricNotRecognized: "Huella no reconocida",
+      biometricRequiredTitle: "Required Title",
+      biometricSuccess: "Huella reconocida",
+      //fingerprintRequiredTitle: '¡Ingrese primero la huella digital!',
     );
-  }
-}
+    bool canCheckBiometrics = await auth.canCheckBiometrics;
+    // bool isBiometricSupported = await auth.();
+    bool isBiometricSupported = await auth.isDeviceSupported();
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+    List<BiometricType> availableBiometrics =
+    await auth.getAvailableBiometrics();
+    print(canCheckBiometrics); //Returns trueB
+    // print("support -->" + isBiometricSupported.toString());
+    print(availableBiometrics.toString()); //Returns [BiometricType.fingerprint]
+    try {
+      authenticated = await auth.authenticate(
+          localizedReason: "Autentíquese para acceder",
+          useErrorDialogs: true,
+          stickyAuth: true,
+          //biometricOnly: true,
+          androidAuthStrings: androidString);
+      if (!authenticated) {
+        authenticated = false;
+      }
+    } on PlatformException catch (e) {
+      print(e);
+    }
+    /* if (!mounted) {
+        return;
+      }*/
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+    return authenticated;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+  validarDatos() async{
+    try{
+      CollectionReference ref=
+      FirebaseFirestore.instance.collection("Usuarios");
+      QuerySnapshot usuario= await ref.get();
+
+      if(usuario.docs.length !=0){
+ for(var cursor in usuario.docs){
+   if(cursor.get("CorreoUsuario")==user.text){
+     print("usuario Encontrado");
+     print(cursor.get("NombreUsuario"));
+     if(cursor.get("ContraseñaUsuario")==paswword.text){
+       print("************************Acceso aceptado***********");
+       mensaje('Bienvenido', cursor.get('rol'));
+       objUser.nombre = cursor.get("NombreUsuario");
+       objUser.id = cursor.get("IdentidadUsuario");
+       objUser.role = cursor.get("rol");
+
+     }else
+       print('********** Acceso denegado **********');
+   }
+ }
+      }else{
+        print("No hay documentos en la coleccion");
+      }
+      print("Envio correcto");
+
+    }catch(e){
+      print("ERROR..."+e.toString());
+    }
+  }
+  void mensaje(String titulo,String contenido) {
+    showDialog(
+        context: context,
+        builder: (buildcontext) {
+          return AlertDialog(
+            title: Text(titulo),
+            content: Text(contenido),
+            actions: <Widget>[
+              FloatingActionButton(
+                onPressed: () {
+                  //Navigator.pop(context);
+                  if(objUser.role=='administrador'){
+                    //Navigator.push(context, MaterialPageRoute(builder: (_) => Administrador()));
+                  }else if(objUser.role=='invitado'){
+                    //Navigator.push(context, MaterialPageRoute(builder: (_) => Invitado()));
+                  }
+                },
+                child:
+                Text('OK', style: TextStyle(color:Colors.blueGrey)),
+              )
+            ],
+          );
+        });
+  }
+
+  Widget build(BuildContext context){
+    return MaterialApp(
+      title: "Bienvenidos",
+      home:Scaffold(
+        appBar: AppBar(
+          title: Text("Ingrese login"),
+        ),
+        body:SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 10, left: 10, right: 10),
+                child: Container(
+                width: 200,
+                height: 200,
+                child: Image.asset('img/login.png'),
+              )),
+              Padding(
+                padding: EdgeInsets.all(10),
+                child: TextField(
+                  controller: user,
+                  decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Email Usuario',
+                      hintText: 'Digite email de Usuario'),
+                ),
+              ),
+        Padding(
+        padding: EdgeInsets.all(10),
+        child: TextField(
+          controller: user,
+          decoration: InputDecoration(
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              labelText: 'Email Usuario',
+              hintText: 'Digite email de usuario '),
+          obscureText: true,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+              Padding(
+                padding: EdgeInsets.only(top: 20, left: 10, right: 10),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => Geoposition()));
+
+                    paswword.text = sha1.convert(utf8.encode(paswword.text)).toString();
+                    print('contrasena original ${paswword.text}');
+                    print('crypto SHA-1 :' + paswword.text);
+                    print('***** Ingresando *****');
+                    validarDatos();
+                  },
+                  child: Text('Enviar'),
+                ),
+              ),
+
+              Padding(
+                padding: EdgeInsets.only(top: 20, left: 10, right: 10),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => Registro(objUser)));
+                  },
+                  child: Text('Registrar'),
+                ),
+              ),
+              Padding(
+              padding: EdgeInsets.all(10),
+              child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(50, 50),
+                    backgroundColor: Colors.black45,
+                  ),
+                  onPressed: () async {
+                    if (await biometrico()){
+                      mensaje('Huella', 'HuellaEncontrada');
+                    }
+                    biometrico();
+                  },
+                  child: Icon(Icons.fingerprint, size:80),
+              ),
+              ),
+              Padding(padding: EdgeInsets.only(top:20, left:50, right: 10),
+                child: ElevatedButton(
+                  onPressed: (){
+
+                    Navigator.push(context, MaterialPageRoute(builder: (_)=> Rest()));
+
+
+                  },
+                  child: Text('Rest'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
+
